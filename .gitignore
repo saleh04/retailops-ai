@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ignore scripts folder anywhere in the project
+scripts/
+*.db
+*.sqlite3
