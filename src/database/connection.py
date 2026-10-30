@@ -29,7 +29,7 @@ class DatabaseConnectionManager:
             return make_url(database_url)
         except ArgumentError as e:
             raise DatabaseConnectionError(
-                f"Invalid database URL format: '{database_url}'."
+                "Invalid database URL format."
             ) from e
 
     @property
@@ -68,14 +68,16 @@ class DatabaseConnectionManager:
             )
             return self._engine
 
-        except NoSuchModuleError as e:
+        except NoSuchModuleError:
             raise DatabaseConnectionError(
-                f"Unsupported database database '{self.database}' or missing database driver."
-            ) from e
-        except Exception as e:
+                f"Unsupported database dialect '{self.database}' "
+                "or missing database driver."
+            ) from None
+
+        except Exception:
             raise DatabaseConnectionError(
-                f"Failed to initialize database engine for '{self.safe_url}': {str(e)}"
-            ) from e
+                "Failed to initialize database engine."
+            ) from None
 
     def test_connection(self) -> bool:
 
@@ -87,12 +89,15 @@ class DatabaseConnectionManager:
             logger.info(f"Database connection verified successfully: {self.safe_url}")
             return True
         
-        except SQLAlchemyError as e:
-            logger.error(f"Connection test failed for {self.safe_url}: {str(e)}")
+        except SQLAlchemyError:
+            logger.error(
+                "Database connection test failed for %s",
+                self.database
+            )
             raise DatabaseConnectionError(
-                f"Unable to establish connection to '{self.safe_url}'. "
-                f"Please verify credentials and ensure the database server is reachable."
-            ) from e
+                "Unable to establish database connection. "
+                "Check credentials and server availability."
+            ) from None
 
     def close(self) -> None:
         
@@ -110,10 +115,12 @@ class DatabaseConnectionManager:
 
 
 def connect(database_url: str) -> DatabaseConnectionManager:
-    """
-    Factory function to initialize and verify a DatabaseConnectionManager instance.
-    Matches the `connect(database_url)` interface requirement.
-    """
     manager = DatabaseConnectionManager(database_url)
-    manager.connect()
+
+    try:
+        manager.test_connection()
+    except Exception:
+        manager.close()
+        raise
+
     return manager
