@@ -21,8 +21,14 @@ class QueryExecutor:
         
         if not isinstance(max_rows, int) or isinstance(max_rows, bool) or not 1 <= max_rows <= 10_000:
             raise ValueError("max_rows must be between 1 and 10000.")
-        if not isinstance(timeout_seconds, (int, float)) or not isfinite(timeout_seconds) or not 0 < timeout_seconds <= 3600:
-            raise ValueError("timeout_seconds must be between 0 and 3600.")
+        
+        if (
+            isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, (int, float))
+            or not isfinite(timeout_seconds)
+            or not 0 < timeout_seconds <= 3600
+        ):
+            raise ValueError("timeout_seconds must be a number between 0 and 3600.")
 
         self._manager = manager
         self._validator = QueryValidator(manager.database)
