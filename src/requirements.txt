@@ -8,4 +8,7 @@ sqlglot==30.27.0
 psycopg2-binary==2.9.13
 PyMySQL==1.2.3
 pyodbc==5.3.0
+langchain==1.4.7
 langchain-core==1.7.3
+langchain-openai==1.7.3
+langchain-google-genai==4.4.2
