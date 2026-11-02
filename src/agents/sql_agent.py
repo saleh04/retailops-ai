@@ -35,4 +35,4 @@ class SQLAgent:
             ]
         })
 
-        return str(result["messages"][-1].text)
+        return result
