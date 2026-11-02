@@ -221,5 +221,6 @@ __marimo__/
 
 # Ignore scripts folder anywhere in the project
 scripts/
+data/
 *.db
 *.sqlite3

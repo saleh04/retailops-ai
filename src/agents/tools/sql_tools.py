@@ -4,7 +4,8 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import Field
 
 from database.connection import DatabaseConnectionManager
-from database.query_executor import QueryExecutor
+from database.query_executor import QueryExecutionError, QueryExecutor
+from database.query_validator import QueryValidationError
 from database.schema_inspector import SchemaInspector
 from models.pydantic_schemas.agent_tool_inputs import DatabaseToolInput
 
@@ -123,7 +124,10 @@ class SQLTools:
             """
             inputs = DatabaseToolInput(query=query)
 
-            return self._executor.execute(inputs.query)
+            try:
+                return self._executor.execute(inputs.query)
+            except (QueryValidationError, QueryExecutionError) as exc:
+                return {"error": str(exc)}
 
         return execute_sql_query
 
