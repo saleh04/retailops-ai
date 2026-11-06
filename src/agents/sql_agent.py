@@ -24,7 +24,7 @@ class SQLAgent:
             system_prompt=system_prompt,
         )
 
-    def ask(self, question: str) -> str:
+    def ask(self, question: str):
 
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question cannot be empty.")
@@ -35,4 +35,4 @@ class SQLAgent:
             ]
         })
 
-        return str(result["messages"][-1].text)
+        return result
