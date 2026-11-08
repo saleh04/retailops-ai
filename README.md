@@ -35,3 +35,20 @@ Once the server is running, you can access the API and its documentation via the
 - **Local development API base URL:** `http://localhost:5000`
 - **Local development Swagger UI:** `http://localhost:5000/docs`
 - **Local development Scalar API reference:** `http://localhost:5000/scalar`
+
+### Analyze a question
+
+Connect to a database with `POST /api/v1/connections` first, then submit a question:
+
+```http
+POST /api/v1/analysis
+Content-Type: application/json
+
+{
+  "question": "How many orders were placed?"
+}
+```
+
+The response includes the analysis status and answer, executed queries, schema
+results, and metadata. Requests without an active database connection return
+`409 Conflict`.
