@@ -1,0 +1,26 @@
+services:
+    postgres:
+        image: postgres:18.6-alpine
+        container_name: retailops_postgres
+        ports:
+            - "5433:5432"
+        volumes:
+            - retailops_pgdata:/var/lib/postgresql
+        env_file:
+            - .env
+        networks:
+            - backend
+        restart: always
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+volumes:
+    retailops_pgdata:
+        name: retailops_pgdata
+
+networks:
+    backend:
