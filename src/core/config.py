@@ -12,9 +12,19 @@ class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
     
-    DEFAULT_SQLITE_URL: str
     POOL_PRE_PING: bool 
     CONNECT_TIMEOUT: int
+    
+    POSTGRES_USERNAME: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+    POSTGRES_MAIN_DATABASE: str
+    
+    CHAT_HISTORY_LIMIT: int = Field(
+        default=10,
+        le=24
+    )
     
     GENERATION_BACKEND: Literal["OPENAI", "GEMINI"] = "OPENAI"
 
