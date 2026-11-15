@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 
 class ConnectionResponse(BaseModel):
-    status: Literal["connected"]
-    dialect: str
-    connection_id: UUID
+    status: Literal["connected", "disconnected"]
+    dialect: str | None = None
+    connection_id: UUID | None = None
     
 class SchemaTablesResponse(BaseModel):
     tables: list[str]

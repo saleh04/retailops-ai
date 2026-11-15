@@ -18,11 +18,26 @@ connections_router = APIRouter(
 )
 
 
+@connections_router.get("", response_model=ConnectionResponse)
+def get_connection_status(request: Request):
+    manager = getattr(request.app.state, "db_manager", None)
+    connection_id = getattr(request.app.state, "connection_id", None)
+
+    if manager is None or connection_id is None:
+        return ConnectionResponse(status="disconnected")
+
+    return ConnectionResponse(
+        status="connected",
+        dialect=manager.database,
+        connection_id=connection_id,
+    )
+
+
 @connections_router.post("", response_model=ConnectionResponse, status_code=status.HTTP_201_CREATED)
 async def create_connection(payload: ConnectionRequest, request: Request,
                         db: AsyncSession = Depends(get_internal_db)):  # noqa: B008
 
-    if request.app.state.db_manager is not None:
+    if getattr(request.app.state, "db_manager", None) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A database connection is already active.",
@@ -63,7 +78,7 @@ async def create_connection(payload: ConnectionRequest, request: Request,
 
 @connections_router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 def delete_connection(request: Request):
-    manager = request.app.state.db_manager
+    manager = getattr(request.app.state, "db_manager", None)
 
     if manager is None:
         raise HTTPException(
