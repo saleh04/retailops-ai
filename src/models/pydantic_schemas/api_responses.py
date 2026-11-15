@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 class ConnectionResponse(BaseModel):
     status: Literal["connected"]
     dialect: str
+    connection_id: UUID
     
 class SchemaTablesResponse(BaseModel):
     tables: list[str]

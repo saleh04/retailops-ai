@@ -1,7 +1,5 @@
 import logging
 
-from fastapi import status
-
 from database.connection import DatabaseConnectionManager
 from models.pydantic_schemas.analysis import (
     AnalysisMetadata,
@@ -17,9 +15,12 @@ class AnalysisController:
     def __init__(self, manager: DatabaseConnectionManager):
         self._manager = manager
 
-    def analyze(self, question: str):
+    def analyze(self, question: str, history: list[dict] | None = None):
         try:
-            result = AnalysisService(self._manager).analyze(question)
+            result = AnalysisService(self._manager).analyze(
+                question,
+                history=history,
+            )
 
         except Exception:
             logger.exception("Unexpected error while processing analysis request.")
@@ -35,11 +36,5 @@ class AnalysisController:
                 ),
                 error="Analysis failed.",
             )
-            
-        response_status = (
-            status.HTTP_500_INTERNAL_SERVER_ERROR
-            if result.status == "failed"
-            else status.HTTP_200_OK
-        )
     
-        return result, response_status
+        return result

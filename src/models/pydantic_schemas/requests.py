@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 
@@ -21,3 +23,4 @@ class AnalysisRequest(BaseModel):
     )
 
     question: str = Field(min_length=1)
+    conversation_id: UUID | None = None

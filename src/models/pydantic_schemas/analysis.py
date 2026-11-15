@@ -1,4 +1,5 @@
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -80,3 +81,4 @@ class AnalysisResponse(BaseModel):
     metadata: AnalysisMetadata
     schema_results: list[SchemaToolResult] 
     error: str | None = None
+    conversation_id: UUID | None = None

@@ -13,3 +13,15 @@ def get_db_manager(request: Request) -> DatabaseConnectionManager:
         )
 
     return manager
+
+async def get_internal_db(request: Request):
+    session_factory = request.app.state.db_client
+
+    if not session_factory:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal database session factory is not initialized.",
+        )
+
+    async with session_factory() as session:
+        yield session

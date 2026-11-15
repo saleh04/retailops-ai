@@ -24,14 +24,15 @@ class SQLAgent:
             system_prompt=system_prompt,
         )
 
-    def ask(self, question: str):
+    def ask(self, question: str, history: list[dict] | None = None):
 
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question cannot be empty.")
 
         result = self.agent.invoke({
             "messages": [
-                {"role": "user", "content": question}
+                *(history or []),
+                {"role": "user", "content": question},
             ]
         })
 
