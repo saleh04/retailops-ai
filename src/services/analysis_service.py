@@ -152,19 +152,19 @@ class AnalysisService:
 
         return "success", answer, None
 
-    def analyze(self, question: str) -> AnalysisResponse:
+    def analyze(self, question: str, history: list[dict] | None=None) -> AnalysisResponse:
         # First Case "Empty Question".
         if not question or not question.strip():
             return self.failure("Question cannot be empty.")
 
         try:
-            state = self._agent.ask(question)
+            state = self._agent.ask(question, history=history)
         # Second Case "Agent Failed".
         except Exception:
             logger.exception("Agent execution failed.")
             return self.failure("Agent execution failed.")
 
-        messages = state.get("messages", [])
+        messages = state.get("messages", [])[len(history or []):]
 
         # Third Case "No Valid Messages".
         if not messages:
