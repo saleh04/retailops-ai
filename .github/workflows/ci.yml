@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: 
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test 
+    runs-on: ubuntu-latest
+
+    # The application stores conversations and connection records in
+    # PostgreSQL. `tests/conftest.py` creates and drops its own
+    # `retailops_test_<pid>` database, so a plain server is enough.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # --- Application settings (src/core/config.py) -----------------------
+      # The repository `.env` file is git-ignored, so the settings that
+      # `Settings` requires are provided as environment variables instead.
+      APP_NAME: RetailOps-AI
+      APP_VERSION: "0.1.0"
+      CORS_ORIGINS: "*"
+      POOL_PRE_PING: "True"
+      CONNECT_TIMEOUT: "10"
+      SQL_MAX_ROWS: "100"
+      SQL_TIMEOUT_SECONDS: "5.0"
+      CHAT_HISTORY_LIMIT: "10"
+
+      # --- Internal PostgreSQL store (service container above) ------------
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_MAIN_DATABASE: RetailOps
+
+      # --- LLM configuration ----------------------------------------------
+      # Dummy values only: the suite replaces the provider with a scripted
+      # stub (tests/conftest.py), so no request ever leaves the runner.
+      GENERATION_BACKEND: OPENAI
+      MODEL_ID: ci-dummy-model
+      OPENAI_API_KEY: ci-dummy-key
+      GOOGLE_API_KEY: ci-dummy-key
+      DEFAULT_TEMPERATURE: "0.0"
+      LLM_TIMEOUT: "60.0"
+      AGENT_RECURSION_LIMIT: "25"
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: src/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src/requirements-dev.txt
+
+      - name: Verify the test suite is present
+        run: |
+          if [ ! -d tests ]; then
+            echo "::error::No 'tests' directory found. The regression suite must be committed for CI to run it."
+            exit 1
+          fi
+
+      - name: Run the regression suite
+        run: pytest -v
