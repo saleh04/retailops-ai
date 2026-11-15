@@ -22,14 +22,16 @@ conversations_router = APIRouter(
 )
 
 
-def _summary(conversation: Conversation):
+def _summary(conversation: Conversation, message_count: int | None = None):
     return ConversationSummaryResponse(
         id=conversation.id,
         connection_id=conversation.connection_id,
         title=conversation.title,
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
-        message_count=len(conversation.messages),
+        message_count=(
+            len(conversation.messages) if message_count is None else message_count
+        ),
     )
 
 
@@ -39,7 +41,10 @@ async def get_conversations(connection_id: UUID | None = None,
 
     try:
         conversations = await ConversationRepository(db).list_all(connection_id)
-        return [_summary(conversation) for conversation in conversations]
+        return [
+            _summary(conversation, message_count)
+            for conversation, message_count in conversations
+        ]
     except SQLAlchemyError:
         logger.exception("Failed to retrieve conversations.")
         raise HTTPException(

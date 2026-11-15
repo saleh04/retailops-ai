@@ -31,15 +31,19 @@ class ConversationRepository:
 
     async def list_all(self, connection_id: UUID | None = None):
         statement = (
-            select(Conversation)
-            .options(selectinload(Conversation.messages))
+            select(
+                Conversation,
+                func.count(Message.id).label("message_count"),
+            )
+            .outerjoin(Message, Message.conversation_id == Conversation.id)
+            .group_by(Conversation.id)
             .order_by(Conversation.updated_at.desc())
         )
         if connection_id is not None:
             statement = statement.where(Conversation.connection_id == connection_id)
 
         result = await self.db.execute(statement)
-        return list(result.scalars().all())
+        return list(result.all())
 
     async def delete(self, conversation_id: UUID) -> bool:
         conversation = await self.db.get(Conversation, conversation_id)
