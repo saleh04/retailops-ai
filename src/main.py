@@ -5,7 +5,7 @@ from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from core.config import get_settings
-from routes import analysis, base, connections, schema
+from routes import analysis, base, connections, conversations, schema
 
 
 @asynccontextmanager
@@ -20,12 +20,14 @@ async def lifespan(app: FastAPI):
     
     # External BB manager
     app.state.db_manager = None
+    app.state.connection_id = None
 
     try:
         yield
     finally:
         manager = app.state.db_manager
         app.state.db_manager = None
+        app.state.connection_id = None
         if manager is not None:
             manager.close()
             
@@ -45,3 +47,4 @@ app.include_router(base.base_router)
 app.include_router(connections.connections_router)
 app.include_router(schema.schema_router)
 app.include_router(analysis.analysis_router)
+app.include_router(conversations.conversations_router)
