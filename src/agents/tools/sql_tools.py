@@ -4,9 +4,9 @@ from typing import Annotated, Any
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import Field, ValidationError
 
+from core.config import get_settings
 from database.connection import DatabaseConnectionManager
 from database.query_executor import QueryExecutionError, QueryExecutor
-from database.query_validator import QueryValidationError
 from database.schema_inspector import SchemaInspectionError, SchemaInspector
 from models.pydantic_schemas.agent_tool_inputs import DatabaseToolInput
 
@@ -41,7 +41,7 @@ def _schema_success(tool_name: str, data: Any) -> ToolResult:
     }
     return _to_json(data), artifact
 
-def _schema_failure(tool_name: str, exc: Exception) -> ToolResult:
+def _schema_failure(tool_name: str, exc: Exception | str) -> ToolResult:
     error = str(exc)
     artifact = {
         "tool_name": tool_name,
@@ -79,8 +79,13 @@ def _sql_failure(requested_sql: str, error: str,
 class SQLTools:
     
     def __init__(self, manager: DatabaseConnectionManager) -> None:
+        settings = get_settings()
         self._inspector = SchemaInspector(manager.engine)
-        self._executor = QueryExecutor(manager)
+        self._executor = QueryExecutor(
+            manager,
+            max_rows=settings.SQL_MAX_ROWS,
+            timeout_seconds=settings.SQL_TIMEOUT_SECONDS,
+        )
 
         self.list_tables = self._as_tool("list_tables", self._list_tables)
         self.describe_table = self._as_tool("describe_table", self._describe_table)
@@ -108,7 +113,10 @@ class SQLTools:
         Returns:
             str: JSON list of available table names, or an error message.
         """
-        inputs = DatabaseToolInput(schema_name=schema_name)
+        try:
+            inputs = DatabaseToolInput(schema_name=schema_name)
+        except ValidationError:
+            return _schema_failure("list_tables", "Invalid schema tool input.")
 
         try:
             tables = self._inspector.list_tables(schema=inputs.schema_name)
@@ -130,7 +138,10 @@ class SQLTools:
         Returns:
             str: JSON table metadata, including columns and relationships, or an error message.
         """
-        inputs = DatabaseToolInput(table_name=table_name, schema_name=schema_name)
+        try:
+            inputs = DatabaseToolInput(table_name=table_name, schema_name=schema_name)
+        except ValidationError:
+            return _schema_failure("describe_table", "Invalid schema tool input.")
 
         try:
             columns = self._inspector.get_table_columns(
@@ -172,8 +183,6 @@ class SQLTools:
 
         try:
             execution = self._executor.execute(sql)
-        except QueryValidationError as exc:
-            return _sql_failure(sql, str(exc), label="SQL validation failed")
         except QueryExecutionError as exc:
             return _sql_failure(
                 sql,
