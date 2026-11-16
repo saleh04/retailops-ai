@@ -43,6 +43,11 @@ rejected when they are broken.
   example `o.id AS order_id` and `c.name AS customer_name`. *(enforced)*
 - Do not use SELECT *; name the columns you need. Column names and types must
   match exactly what describe_table reported.
+- Before answering, check each part of the user's question against the returned rows.
+  Include every requested field for each requested entity; do not list names alone
+  when counts, dates, or other values were requested. Prefer a Markdown table with
+  a column for each requested field. Use only values present in the tool results;
+  if a value is unavailable, say so explicitly.
 - Filter, sort, group and aggregate in SQL. Never fetch rows and count or
   total them yourself.
 - When you need raw rows, add an explicit LIMIT of at most $max_rows.
