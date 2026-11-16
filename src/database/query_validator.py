@@ -1,5 +1,6 @@
-from sqlglot import exp, parse
+from sqlglot import exp, parse, tokenize
 from sqlglot.errors import ErrorLevel, SqlglotError
+from sqlglot.tokens import TokenType
 
 
 class QueryValidationError(Exception):
@@ -25,7 +26,7 @@ class QueryValidator:
         exp.Drop, exp.Command, exp.Into,
         exp.Lock, exp.Hint, exp.JoinHint,
         exp.WithTableHint, exp.IndexTableHint,
-        exp.QueryOption,
+        exp.QueryOption, exp.Pragma,
     )
 
     BLOCKED_FUNCTIONS = frozenset({
@@ -58,6 +59,14 @@ class QueryValidator:
             raise QueryValidationError("SQL hints, variable assignments and executable comments are not allowed.")
 
         try:
+            tokens = tokenize(query, read=self._dialect)
+            while tokens and tokens[-1].token_type == TokenType.SEMICOLON:
+                tokens.pop()
+            if tokens and tokens[0].text.upper() == "PRAGMA":
+                if any(t.token_type == TokenType.SEMICOLON for t in tokens):
+                    raise QueryValidationError("Exactly one SQL statement is allowed.")
+                raise QueryValidationError("Only SELECT queries are allowed.")
+
             statements = parse(query, read=self._dialect, error_level=ErrorLevel.RAISE)
             if len(statements) != 1 or statements[0] is None:
                 raise QueryValidationError("Exactly one SQL statement is allowed.")

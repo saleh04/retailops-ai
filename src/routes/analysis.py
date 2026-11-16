@@ -20,12 +20,28 @@ analysis_router = APIRouter(
 )
 
 
-@analysis_router.post("", response_model=AnalysisResponse)
+@analysis_router.post(
+    "",
+    response_model=AnalysisResponse,
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": AnalysisResponse,
+            "description": "The analysis could not be completed.",
+        },
+    },
+)
 async def analyze(payload: AnalysisRequest, request: Request, response: Response,
                 manager: DatabaseConnectionManager = Depends(get_db_manager),  # noqa: B008
                 db: AsyncSession = Depends(get_internal_db)):  # noqa: B008
+    """Answer a question about the connected database.
 
-    connection_id = request.app.state.connection_id
+    A successful answer and an empty result are reported with `200 OK`.
+    An analysis that could not be completed is reported with `500` and a
+    body that carries the same `AnalysisResponse` structure, including the
+    `status` (`failed`), the `error` and the persisted `conversation_id`.
+    """
+
+    connection_id = getattr(request.app.state, "connection_id", None)
     if connection_id is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -36,7 +52,7 @@ async def analyze(payload: AnalysisRequest, request: Request, response: Response
 
     try:
         if payload.conversation_id is None:
-            conversation = await conversations.create(connection_id, payload.question)
+            history = []
         else:
             conversation = await conversations.get(payload.conversation_id)
             if conversation is None or conversation.connection_id != connection_id:
@@ -45,21 +61,24 @@ async def analyze(payload: AnalysisRequest, request: Request, response: Response
                     detail="Conversation not found.",
                 )
 
-        history = await conversations.build_agent_history(
-            conversation.id,
-            get_settings().CHAT_HISTORY_LIMIT,
-        )
-        conversation_id = conversation.id
-        
-        await db.commit()
+            history = await conversations.build_agent_history(
+                conversation.id,
+                get_settings().CHAT_HISTORY_LIMIT,
+            )
+            conversation_id = conversation.id
 
         controller = AnalysisController(manager)
-        
+
         result = await run_in_threadpool(
             controller.analyze,
             payload.question,
             history,
         )
+
+        if payload.conversation_id is None:
+            conversation = await conversations.create(connection_id, payload.question)
+            conversation_id = conversation.id
+
         result = result.model_copy(update={"conversation_id": conversation_id})
 
         await conversations.save_turn(conversation_id, payload.question, result)
@@ -82,4 +101,5 @@ async def analyze(payload: AnalysisRequest, request: Request, response: Response
         if result.status == "failed"
         else status.HTTP_200_OK
     )
+
     return result

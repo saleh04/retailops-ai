@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .connection import DatabaseConnectionManager
 from .query_security import QuerySecurityError, protected_query
-from .query_validator import QueryValidator
+from .query_validator import QueryValidationError, QueryValidator
 
 
 class QueryExecutionError(Exception):
@@ -16,12 +16,10 @@ class QueryExecutionError(Exception):
 
 class QueryExecutor:
 
-    def __init__(
-        self,
-        manager: DatabaseConnectionManager,
-        max_rows: int = 100,
-        timeout_seconds: float = 5,
-    ):
+    COUNT_CHUNK_SIZE = 1000
+
+    def __init__(self, manager: DatabaseConnectionManager,
+                max_rows: int = 100, timeout_seconds: float = 5):
 
         if (
             not isinstance(max_rows, int)
@@ -43,9 +41,21 @@ class QueryExecutor:
         self._max_rows = max_rows
         self._timeout_seconds = timeout_seconds
 
+    @staticmethod
+    def count_remaining_rows(result, chunk_size: int) -> int:
+        total = 0
+
+        while True:
+            chunk = result.fetchmany(chunk_size)
+            if not chunk:
+                return total
+            total += len(chunk)
+
     def execute(self, query: str) -> dict:
-        
-        sql = self._validator.validate(query)
+        try:
+            sql = self._validator.validate(query)
+        except QueryValidationError as exc:
+            raise QueryExecutionError(str(exc)) from exc
 
         execution_started = False
         try:
@@ -70,16 +80,25 @@ class QueryExecutor:
                             )
 
                         fetched = result.fetchmany(self._max_rows + 1)
+                        truncated = len(fetched) > self._max_rows
                         rows = [
                             dict(zip(columns, row))
                             for row in fetched[:self._max_rows]
                         ]
 
+                        if truncated:
+                            total_rows = len(fetched) + self.count_remaining_rows(
+                                result, self.COUNT_CHUNK_SIZE
+                            )
+                        else:
+                            total_rows = len(rows)
+
                         data = {
                             "columns": columns,
                             "rows": rows,
                             "row_count": len(rows),
-                            "truncated": (len(fetched) > self._max_rows)
+                            "total_rows": total_rows,
+                            "truncated": truncated,
                         }
 
                         return {

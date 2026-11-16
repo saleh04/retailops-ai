@@ -24,7 +24,15 @@ class QueryData(BaseModel):
     columns: list[str]
     rows: list[dict[str, Any]]
     row_count: int = Field(ge=0)
+    total_rows: int = Field(ge=0)
     truncated: bool
+
+    @model_validator(mode="before")
+    @classmethod
+    def default_total_rows(cls, data: Any):
+        if isinstance(data, dict) and "total_rows" not in data and "row_count" in data:
+            return {**data, "total_rows": data["row_count"]}
+        return data
 
 
 class SQLExecutionResult(BaseModel):

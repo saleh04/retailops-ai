@@ -30,6 +30,9 @@ class LLMFactory:
         if self.config.DEFAULT_MAX_TOKENS is not None:
             model_params["max_tokens"] = self.config.DEFAULT_MAX_TOKENS
 
+        if self.config.LLM_TIMEOUT is not None:
+            model_params["timeout"] = self.config.LLM_TIMEOUT
+
         if self.config.GENERATION_BACKEND == "OPENAI":
 
             if self.config.OPENAI_API_KEY is None:

@@ -4,7 +4,7 @@ from database.connection import DatabaseConnectionManager
 
 
 def get_db_manager(request: Request) -> DatabaseConnectionManager:
-    manager = request.app.state.db_manager
+    manager = getattr(request.app.state, "db_manager", None)
 
     if manager is None:
         raise HTTPException(
@@ -15,7 +15,7 @@ def get_db_manager(request: Request) -> DatabaseConnectionManager:
     return manager
 
 async def get_internal_db(request: Request):
-    session_factory = request.app.state.db_client
+    session_factory = getattr(request.app.state, "db_client", None)
 
     if not session_factory:
         raise HTTPException(

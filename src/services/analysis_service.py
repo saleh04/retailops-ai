@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, ToolCall, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolCall, ToolMessage
 
 from agents.sql_agent import SQLAgent
 from database.connection import DatabaseConnectionManager
@@ -34,6 +34,17 @@ class AnalysisService:
         )
 
     @staticmethod
+    def extract_turn_messages(messages: list) -> list:
+        for index in range(len(messages) - 1, -1, -1):
+            msg = messages[index]
+            if isinstance(msg, HumanMessage) or (
+                isinstance(msg, dict) and msg.get("role") in ("user", "human")
+            ):
+                return messages[index + 1:]
+
+        return messages
+
+    @staticmethod
     def collect_tool_trace(messages: list):
         tool_calls = {
             call["id"]: call
@@ -62,15 +73,27 @@ class AnalysisService:
 
     def parse_sql_call(self, call_id: str, call: ToolCall,
                         tool_message: ToolMessage | None):
-        
-        requested_sql = call["args"].get("query", "").strip()
+        args = call.get("args") if isinstance(call, dict) else None
+        raw_query = args.get("query") if isinstance(args, dict) else None
+        requested_sql = raw_query.strip() if isinstance(raw_query, str) else ""
 
         if not requested_sql:
             return None, "SQL tool call contained an invalid query."
 
+        artifact = tool_message.artifact if tool_message is not None else None
+        if not isinstance(artifact, dict):
+            return (
+                self.failed_query(
+                    call_id,
+                    requested_sql,
+                    "Invalid or missing SQL execution artifact.",
+                ),
+                "Invalid SQL execution trace.",
+            )
+
         try:
             execution = SQLExecutionResult.model_validate(
-                {**tool_message.artifact, "tool_call_id": call_id}
+                {**artifact, "tool_call_id": call_id}
             )
             return execution, None
 
@@ -95,9 +118,20 @@ class AnalysisService:
 
     def parse_schema_call(self, call_id: str, tool_name: str,
                              tool_message: ToolMessage | None):
+        artifact = tool_message.artifact if tool_message is not None else None
+        if not isinstance(artifact, dict):
+            return (
+                self.failed_schema(
+                    call_id,
+                    tool_name,
+                    "Invalid or missing schema inspection artifact.",
+                ),
+                "Invalid schema execution trace.",
+            )
+
         try:
             result = SchemaToolResult.model_validate(
-                {**tool_message.artifact, "tool_call_id": call_id}
+                {**artifact, "tool_call_id": call_id}
             )
             return result, None
 
@@ -159,12 +193,15 @@ class AnalysisService:
 
         try:
             state = self._agent.ask(question, history=history)
+        except RuntimeError as exc:
+            logger.warning("Agent exceeded recursion limit.")
+            return self.failure(str(exc))
         # Second Case "Agent Failed".
         except Exception:
             logger.exception("Agent execution failed.")
             return self.failure("Agent execution failed.")
 
-        messages = state.get("messages", [])[len(history or []):]
+        messages = self.extract_turn_messages(state.get("messages", []))
 
         # Third Case "No Valid Messages".
         if not messages:
@@ -177,6 +214,7 @@ class AnalysisService:
         trace_error = None
 
         for call_id, call in tool_calls.items():
+            error = None
             tool_name = call["name"]
             tool_message = tool_messages.get(call_id)
 
