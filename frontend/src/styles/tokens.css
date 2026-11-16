@@ -1,0 +1,154 @@
+/* ==========================================================================
+   RetailOps AI — design tokens
+   Direction: "archival ledger". Warm stock, evergreen ink and quiet rules:
+   a retail-operations instrument with paper-and-ink character, square data
+   surfaces, condensed display type and monospace for database output.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Ground & surfaces ------------------------------------------------ */
+  --bg: #ded5c4;
+  --surface: #eee5d5;
+  --surface-2: #e5dbc9;
+  --surface-3: #d8cbb5;
+  --surface-inset: #f0e7d6;
+
+  /* --- Ink -------------------------------------------------------------- */
+  --ink: #28241c;
+  --ink-2: #544c3e;
+  --ink-3: #625a4c;
+  --ink-inverse: #f6f1e6;
+
+  /* --- Rules ------------------------------------------------------------ */
+  --rule: #d0c3ac;
+  --rule-2: #bdaf96;
+  --rule-strong: #a8987e;
+
+  /* --- Signal (evergreen) ------------------------------------------------ */
+  --accent: #345b44;
+  --accent-hover: #294b38;
+  --accent-ink: #f6f1e6;
+  --accent-soft: #d6e0d1;
+  --accent-rule: #a8b8a2;
+  --accent-ring: rgba(52, 91, 68, 0.32);
+
+  /* --- Status ------------------------------------------------------------ */
+  --ok: #356444;
+  --ok-soft: #d6e2d2;
+  --ok-rule: #a9bea4;
+
+  --warn: #765519;
+  --warn-soft: #eadfbe;
+  --warn-rule: #cdb882;
+
+  --bad: #973c31;
+  --bad-soft: #edd7d0;
+  --bad-rule: #cf9f96;
+
+  /* --- Syntax highlighting ---------------------------------------------- */
+  --syn-kw: #335b45;
+  --syn-str: #775417;
+  --syn-num: #844b20;
+  --syn-fn: #325762;
+  --syn-com: #625a4c;
+  --syn-op: #544c3e;
+
+  /* --- Type -------------------------------------------------------------- */
+  --font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Mono',
+    Consolas, monospace;
+
+  /* Display: a condensed, heavy grotesque — the voice of a printed shelf label. */
+  --display-tight: 'wdth' 80, 'wght' 800;
+  --display: 'wdth' 90, 'wght' 800;
+
+  /* --- Spacing scale ----------------------------------------------------- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --s16: 64px;
+
+  /* --- Radius: chrome is rounded, data is square -------------------------- */
+  --r-tag: 3px;
+  --r-control: 6px;
+  --r-panel: 10px;
+  --r-sheet: 14px;
+  --r-data: 2px;
+
+  /* --- Elevation: reserved for things that float -------------------------- */
+  --sh-1: 0 1px 2px rgba(40, 36, 28, 0.08);
+  --sh-2: 0 12px 32px -16px rgba(40, 36, 28, 0.28), 0 2px 6px -2px rgba(40, 36, 28, 0.12);
+  --sh-3: 0 28px 60px -24px rgba(40, 36, 28, 0.36);
+  --scroll-shadow: rgba(40, 36, 28, 0.2);
+  --scrim: rgba(24, 23, 18, 0.58);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 380ms;
+
+  /* --- Layout -------------------------------------------------------------- */
+  --sidebar-w: 300px;
+  --topbar-h: 58px;
+  --prose-max: 70ch;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #171914;
+  --surface: #20221c;
+  --surface-2: #282a23;
+  --surface-3: #303229;
+  --surface-inset: #1a1c17;
+
+  --ink: #eee8d9;
+  --ink-2: #c0b69f;
+  --ink-3: #a39a84;
+  --ink-inverse: #171914;
+
+  --rule: #33352b;
+  --rule-2: #414237;
+  --rule-strong: #525345;
+
+  --accent: #91aa91;
+  --accent-hover: #a2b7a0;
+  --accent-ink: #192018;
+  --accent-soft: #2a3629;
+  --accent-rule: #455540;
+  --accent-ring: rgba(145, 170, 145, 0.38);
+
+  --ok: #87b18e;
+  --ok-soft: #243328;
+  --ok-rule: #405b45;
+
+  --warn: #d1ae67;
+  --warn-soft: #362d1b;
+  --warn-rule: #564726;
+
+  --bad: #dc9383;
+  --bad-soft: #38231f;
+  --bad-rule: #59342d;
+
+  --syn-kw: #b6c69d;
+  --syn-str: #c2ce93;
+  --syn-num: #e0b079;
+  --syn-fn: #91b9b0;
+  --syn-com: #a09a86;
+  --syn-op: #c0b69f;
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.38);
+  --sh-2: 0 12px 32px -16px rgba(0, 0, 0, 0.68), 0 2px 6px -2px rgba(0, 0, 0, 0.42);
+  --sh-3: 0 28px 60px -24px rgba(0, 0, 0, 0.74);
+  --scroll-shadow: rgba(0, 0, 0, 0.55);
+  --scrim: rgba(4, 6, 9, 0.66);
+}
