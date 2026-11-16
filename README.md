@@ -47,6 +47,7 @@ RetailOps AI is a FastAPI service that lets you ask questions about a connected 
 - **Database drivers**: `psycopg2-binary`, `PyMySQL`, `pyodbc`, `asyncpg`
 - **Tests**: pytest 9.2.0, pytest-asyncio, pytest-cov, httpx
 - **CI**: GitHub Actions (`.github/workflows/ci.yml`)
+- **Frontend**: React 19, TypeScript 5.9, Vite 7
 
 ## Architecture
 
@@ -159,8 +160,10 @@ message
 
 - Python 3.11 or newer (CI uses 3.14)
 - Docker and Docker Compose (for the internal PostgreSQL store)
-- An OpenAI API key **or** a Google Gemini API key
-- A database you want to analyse, with credentials you are allowed to read
+- Node.js and npm (only if you want to run the frontend)
+- An OpenAI API key **or** a Google Gemini API key for live analysis (tests use
+  a stub).
+- A database you are allowed to read.
 
 ## Getting Started
 
@@ -175,24 +178,26 @@ cp .env.example .env
 cp docker/.env.example docker/.env
 ```
 
-In `.env` set the language model provider and its credentials:
+In `.env`, set the language model provider, model ID, and matching provider key:
 
 | Backend   | Variables                                                        |
 | --------- | ---------------------------------------------------------------- |
 | `OPENAI`  | `GENERATION_BACKEND="OPENAI"`, `OPENAI_API_KEY`, `MODEL_ID`       |
 | `GEMINI`  | `GENERATION_BACKEND="GEMINI"`, `GOOGLE_API_KEY`, `MODEL_ID`       |
 
+The checked-in examples contain local development values. Use your own local
+credentials, keep `.env` files out of version control, and make the PostgreSQL
+user, password, and database name in `.env` match `docker/.env`.
+
 ### 2. Start the internal database
 
 The internal PostgreSQL database stores connection records and conversation history. The container is published on port `5433` on your machine.
 
 ```bash
-cd docker
-docker compose up -d
-cd ..
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-Check that it is healthy:
+Check its status:
 
 ```bash
 docker compose -f docker/docker-compose.yml ps
@@ -201,33 +206,34 @@ docker compose -f docker/docker-compose.yml ps
 ### 3. Install dependencies
 
 ```bash
-cd src
-pip install -r requirements.txt
-cd ..
+python -m pip install -r src/requirements.txt
 ```
 
 For development (tests and coverage):
 
 ```bash
-pip install -r src/requirements-dev.txt
+python -m pip install -r src/requirements-dev.txt
 ```
 
 ### 4. Apply database migrations
 
-Alembic is configured per project; copy the example configuration and point it at the internal database:
+The internal database schema must be migrated before starting the API. Create
+the local Alembic configuration:
 
 ```bash
 cd src/models/db_schemas/Retailops
 cp alembic.ini.example alembic.ini
 ```
 
-Update `sqlalchemy.url` in `alembic.ini` with the internal PostgreSQL credentials, for example:
+Set `sqlalchemy.url` in `alembic.ini` to the same local PostgreSQL database
+configured in `.env`. For example:
 
 ```ini
 sqlalchemy.url = postgresql://postgres:password123@localhost:5433/RetailOps
 ```
 
-Then apply the migrations:
+The URL above uses the example's local-only credentials; change it if you
+changed the values in either environment file. Apply the migrations:
 
 ```bash
 alembic upgrade head
@@ -240,15 +246,33 @@ For more information about Alembic configuration and migrations, see the [Alembi
 
 ```bash
 cd src
-uvicorn main:app --reload --host 0.0.0.0 --port 5000
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 5000
 ```
 
 You should see:
 
 ```text
-INFO:     Uvicorn running on http://0.0.0.0:5000
+INFO:     Uvicorn running on http://127.0.0.1:5000
 INFO:     Application startup complete.
 ```
+
+The API keeps the active external database connection in memory. Reconnect to
+your database after restarting the backend. The API has no authentication;
+keep it on a trusted local network and do not treat CORS as access control.
+
+### 6. Start the frontend (optional)
+
+The API can be used on its own, but the repository also ships a web client in
+[`frontend/`](frontend/README.md) that connects to a database, asks questions
+and renders every answer with the SQL and the rows behind it.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open <http://localhost:5173>. It talks to the API on `http://localhost:5000`.
 
 ## Configuration
 
@@ -491,3 +515,5 @@ Make sure `sqlalchemy.url` in `alembic.ini` points at the same database as `POST
 ## License
 
 [MIT](LICENSE) - Copyright (c) 2026 Saleh Mohamed.
+
+> **Note:** The frontend and automated tests in this repository were AI-generated.
